@@ -13,14 +13,25 @@ export default function ImageUploader({ onUpload, loading }: Props) {
   const [dragging, setDragging] = useState(false);
 
   function handleFile(file: File) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setPreview(result);
-      const base64 = result.split(",")[1];
-      onUpload(base64, file.type);
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 1024;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+
+      const compressed = canvas.toDataURL("image/jpeg", 0.85);
+      URL.revokeObjectURL(objectUrl);
+      setPreview(compressed);
+      onUpload(compressed.split(",")[1], "image/jpeg");
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   }
 
   function handleDrop(e: React.DragEvent) {

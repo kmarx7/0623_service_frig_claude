@@ -33,9 +33,10 @@ JSON 배열 형식으로만 답해줘. 예: ["달걀", "우유", "당근"]
     ],
   });
 
-  const text = response.choices[0]?.message?.content ?? "[]";
+  const text = response.choices[0]?.message?.content ?? "";
+  if (!text) throw new Error("모델 응답이 비어있습니다");
   const match = text.match(/\[[\s\S]*\]/);
-  if (!match) return [];
+  if (!match) throw new Error(`재료 파싱 실패: ${text.slice(0, 100)}`);
   return JSON.parse(match[0]) as string[];
 }
 
