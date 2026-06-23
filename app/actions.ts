@@ -1,31 +1,23 @@
 "use server";
 
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function detectIngredients(
   imageBase64: string,
   mimeType: string
 ): Promise<string[]> {
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 1024,
     messages: [
       {
         role: "user",
         content: [
           {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: mimeType as
-                | "image/jpeg"
-                | "image/png"
-                | "image/gif"
-                | "image/webp",
-              data: imageBase64,
-            },
+            type: "image_url",
+            image_url: { url: `data:${mimeType};base64,${imageBase64}` },
           },
           {
             type: "text",
@@ -38,8 +30,7 @@ JSON 배열 형식으로만 답해줘. 예: ["달걀", "우유", "당근"]
     ],
   });
 
-  const text =
-    response.content[0].type === "text" ? response.content[0].text : "[]";
+  const text = response.choices[0]?.message?.content ?? "[]";
   const match = text.match(/\[[\s\S]*\]/);
   if (!match) return [];
   return JSON.parse(match[0]) as string[];
@@ -55,8 +46,8 @@ export interface Recipe {
 }
 
 export async function getRecipes(ingredients: string[]): Promise<Recipe[]> {
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 2048,
     messages: [
       {
@@ -81,8 +72,7 @@ export async function getRecipes(ingredients: string[]): Promise<Recipe[]> {
     ],
   });
 
-  const text =
-    response.content[0].type === "text" ? response.content[0].text : "[]";
+  const text = response.choices[0]?.message?.content ?? "[]";
   const match = text.match(/\[[\s\S]*\]/);
   if (!match) return [];
   return JSON.parse(match[0]) as Recipe[];
